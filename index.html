@@ -219,13 +219,14 @@ const MOTOR_GROUPS = {
 
 
 /* Google Drive URL */
+const IMAGE_PROXY = "https://script.google.com/macros/s/AKfycbwjwnHunkRgs3EfexxB9SV6wgWgMMiZwJHPIbrKAQv7kKCDV_CX5s6-dK7maOSCXI/exec";
+
 function convertDriveURL(url){
     if (!url) return "";
-    const match = url.match(/[-\w]{25,}/);
-    if (!match) return "";
-    return `https://drive.usercontent.google.com/download?id=${match[0]}&export=view`;
+    const id = url.match(/[-\w]{25,}/);
+    if (!id) return "";
+    return `${IMAGE_PROXY}?id=${id[0]}`;
 }
-
 /* Lightbox */
 function showImage(url){
     lightboxImg.src = url;
@@ -481,3 +482,4 @@ async function exportPDF(){
 
 </body>
 </html>
+
