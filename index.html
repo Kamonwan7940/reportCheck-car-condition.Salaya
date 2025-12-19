@@ -14,35 +14,32 @@
 
 <style>
 body{
-    font-family:"Prompt", sans-serif;
-    background:#f4f7fb;
-    margin:0;
+    font-family:"Prompt", sans-serif; background:#f4f7fb; margin:0;
 }
 
-/* ---------- Sticky Layout ---------- */
+/* ---------------------------------------------------
+   STICKY HEADER + FILTER + SUMMARY + TABLE HEADER
+----------------------------------------------------*/
+
+/* HEADER */
 header{
-    background:white;
-    padding:20px 40px;
-    display:flex;
-    align-items:center;
+    background:white; padding:20px 40px; display:flex; align-items:center;
     border-bottom:1px solid #ddd;
     position:sticky;
     top:0;
     z-index:3000;
 }
 
+/* FILTER BAR */
 .filter-box{
-    background:white;
-    padding:20px;
-    display:flex;
-    gap:15px;
-    flex-wrap:wrap;
+    background:white; padding:20px; display:flex; gap:15px; flex-wrap:wrap;
     position:sticky;
     top:var(--topFilter);
     z-index:2500;
     border-bottom:1px solid #ddd;
 }
 
+/* SUMMARY BAR */
 .summary-container{
     background:#f4f7fb;
     padding:20px;
@@ -53,6 +50,7 @@ header{
     z-index:2200;
 }
 
+/* TABLE HEADER */
 thead th{
     position:sticky;
     top:var(--topTableHead);
@@ -61,12 +59,9 @@ thead th{
     z-index:2000;
 }
 
-/* ---------- Table ---------- */
+/* ตาราง */
 table{
-    width:100%;
-    border-collapse:collapse;
-    background:white;
-    margin-top:20px;
+    width:100%; border-collapse:collapse; background:white; margin-top:20px;
 }
 th,td{
     padding:10px;
@@ -74,33 +69,20 @@ th,td{
     text-align:center;
 }
 
-/* ---------- Summary ---------- */
+/* Summary Card */
 .summary-card{
-    flex:1;
-    padding:20px;
-    border-radius:12px;
-    font-size:20px;
-    font-weight:bold;
-    color:white;
-    text-align:center;
+    flex:1; padding:20px; border-radius:12px; font-size:20px;
+    font-weight:bold; color:white; text-align:center;
 }
 .pass{ background:#10B981; }
 .fail{ background:#EF4444; }
 .total{ background:#475569; }
 
-/* ---------- Controls ---------- */
 select,input{
-    padding:10px 14px;
-    border:1px solid #bbb;
-    border-radius:8px;
-    font-size:16px;
+    padding:10px 14px; border:1px solid #bbb; border-radius:8px; font-size:16px;
 }
 button{
-    padding:10px 18px;
-    border:none;
-    color:white;
-    border-radius:8px;
-    cursor:pointer;
+    padding:10px 18px; border:none; color:white; border-radius:8px; cursor:pointer;
 }
 .load-btn{ background:#2563EB; }
 .view-btn{ background:#1E40AF; }
@@ -109,39 +91,23 @@ button{
 .details-row{ background:#eef3ff; }
 .details-box{ padding:15px 30px; text-align:left; }
 
-.thumb{
-    width:120px;
-    border-radius:8px;
-    cursor:pointer;
-}
-
-.toggle-btn{
-    cursor:pointer;
-    color:#1E40AF;
-    font-weight:600;
-}
-.toggle-btn:hover{ text-decoration:underline; }
-
-.zip-btn{
-    background:#7C3AED;
-    padding:8px 14px;
-    border-radius:6px;
-}
-
-/* ---------- Lightbox ---------- */
+/* Lightbox */
 #lightbox{
-    display:none;
-    position:fixed;
-    inset:0;
+    display:none; position:fixed; inset:0; 
     background:rgba(0,0,0,0.85);
-    justify-content:center;
-    align-items:center;
+    justify-content:center; align-items:center;
     z-index:9999;
 }
 #lightbox img{
-    max-width:90%;
-    max-height:90%;
-    border-radius:12px;
+    max-width:90%; max-height:90%; border-radius:12px;
+}
+
+.thumb{ width:120px; border-radius:8px; cursor:pointer; }
+.toggle-btn{ cursor:pointer; color:#1E40AF; font-weight:600; }
+.toggle-btn:hover{ text-decoration:underline; }
+
+.zip-btn{
+    background:#7C3AED; padding:8px 14px; border-radius:6px;
 }
 </style>
 </head>
@@ -160,7 +126,6 @@ button{
     </select>
 
     <select id="yearSelect"></select>
-
     <select id="monthSelect">
         <option value="">ทุกเดือน</option>
         <script>
@@ -195,77 +160,146 @@ button{
     <img id="lightboxImg">
 </div>
 
-<script>
-/* ---------- Sticky Positions ---------- */
-function updateStickyPositions(){
-    const h1 = document.querySelector("header").offsetHeight;
-    const h2 = document.querySelector(".filter-box").offsetHeight;
-    const h3 = document.querySelector(".summary-container").offsetHeight;
 
-    document.documentElement.style.setProperty("--topFilter", h1+"px");
-    document.documentElement.style.setProperty("--topSummary", (h1+h2)+"px");
-    document.documentElement.style.setProperty("--topTableHead", (h1+h2+h3)+"px");
+<script>
+/* ---------------------------------------------------
+   ⭐ Dynamic Sticky Position — แก้ปัญหาทับกัน 100%
+----------------------------------------------------*/
+function updateStickyPositions() {
+    const header = document.querySelector("header");
+    const filter = document.querySelector(".filter-box");
+    const summary = document.querySelector(".summary-container");
+
+    let h1 = header.offsetHeight;
+    let h2 = filter.offsetHeight;
+    let h3 = summary.offsetHeight;
+
+    document.documentElement.style.setProperty("--topFilter", h1 + "px");
+    document.documentElement.style.setProperty("--topSummary", (h1 + h2) + "px");
+    document.documentElement.style.setProperty("--topTableHead", (h1 + h2 + h3) + "px");
 }
+
 window.addEventListener("load", updateStickyPositions);
 window.addEventListener("resize", updateStickyPositions);
 
-/* ---------- Google Sheet ---------- */
+
+/* -----------------------
+   Google Sheet Settings
+-------------------------*/
 const SHEETS = {
     car: "17RaQXYiBqKRuThFsIe78NQsZQAp3zgSLrq-JgFXDXpE",
     motor:"1fpLMthzvhCRKenfnsQfpomEJLxgAOYZuYvrBCGzzseI"
 };
 const TABS = { car:"car", motor:"motor" };
 
-/* ---------- Helpers ---------- */
+
+/* ------------------------------
+   ⭐ ฟังก์ชันสำคัญ: มองหาชื่อคอลัมน์
+   รองรับชื่อมี space / พิมพ์ผิด
+------------------------------*/
 function findColumn(row, keyword){
-    return Object.keys(row).find(k => k.trim().includes(keyword));
+    return Object.keys(row).find(key => key.trim().includes(keyword));
 }
 
-/* ⭐ Google Drive Direct Image */
+
+/* Groups */
+const CAR_GROUPS = {
+    "ระบบภายนอก": ["ตัวถัง","สภาพภายนอก","กระจก","ปัดน้ำฝน","ไฟหน้า","ไฟท้าย","ไฟเลี้ยว","ยาง","กันชน","กระจกมองข้าง"],
+    "ระบบภายใน": ["เบาะ","เข็มขัด","แตร","ไฟสัญญาณ","มาตรวัด","แอร์","พัดลม","พรม","พื้น"],
+    "ระบบเครื่องยนต์": ["น้ำมันเครื่อง","น้ำหล่อเย็น","แบตเตอรี่","ระบบเบรก","พวงมาลัย"],
+    "การทดสอบขณะขับ": ["เสียงเครื่อง","การเร่ง","เกียร์","ระบบเบรก","สั่นสะเทือน","ทรงตัว"]
+};
+
+const MOTOR_GROUPS = {
+    "ระบบภายนอก": ["ตัวถัง","ไฟหน้า","ไฟท้าย","ไฟเลี้ยว","ยาง"],
+    "ระบบภายใน": ["แตร","ไฟสัญญาณ","มาตรวัด"],
+    "ระบบเครื่องยนต์": ["น้ำมันเครื่อง","น้ำหล่อเย็น","แบตเตอรี่","ระบบเบรก"],
+    "การทดสอบขณะขับ": ["เสียงเครื่อง","การเร่ง","เกียร์","ระบบเบรก","สั่นสะเทือน"]
+};
+
+
+/* Google Drive URL */
 function convertDriveURL(url){
-    if(!url) return "";
+    if (!url) return "";
     const match = url.match(/[-\w]{25,}/);
-    if(!match) return "";
-    return `https://drive.google.com/uc?export=view&id=${match[0]}`;
+    if (!match) return "";
+    return `https://drive.usercontent.google.com/download?id=${match[0]}&export=view`;
 }
 
+/* Lightbox */
 function showImage(url){
     lightboxImg.src = url;
     lightbox.style.display = "flex";
 }
 
-/* ---------- Year Select ---------- */
+/* Years */
 let yearNow = new Date().getFullYear();
-for(let y=yearNow;y>=yearNow-5;y--){
+for (let y = yearNow; y >= yearNow-5; y--){
     yearSelect.innerHTML += `<option>${y}</option>`;
 }
 
 let GLOBAL_ROWS = [];
 
-/* ---------- Load Data ---------- */
+
+/* Load data */
 function loadData(showAll=false){
     let type = carType.value;
+
     fetch(`https://opensheet.elk.sh/${SHEETS[type]}/${TABS[type]}`)
     .then(r=>r.json())
-    .then(d=>{
-        GLOBAL_ROWS = d;
+    .then(data=>{
+        GLOBAL_ROWS = data;
         renderTable(showAll);
     });
 }
 
-/* ---------- Render Table ---------- */
+
+/* Pass/Fail */
+function checkCategory(row, keys){
+    for (let col in row){
+        if (keys.some(k=>col.includes(k))){
+            let val = (row[col] || "").trim();
+            if (val.includes("ไม่ผ่าน") || val.includes("ต้องซ่อม"))
+                return "❌ ไม่ผ่าน";
+        }
+    }
+    return "✔ ผ่าน";
+}
+
+
+
+function buildDetailList(row, keys){
+    let html = "<ul>";
+    for (let col in row){
+        if (keys.some(k => col.includes(k))){
+            html += `<li>${col}: ${row[col] || "-"}</li>`;
+        }
+    }
+    html += "</ul>";
+    return html;
+}
+
+
+/* Render table */
 function renderTable(showAll){
+    let type = carType.value;
+    let GROUPS = type==="car" ? CAR_GROUPS : MOTOR_GROUPS;
+
     let year = yearSelect.value;
     let month = monthSelect.value;
     let search = searchInput.value.trim();
 
     let rows = GLOBAL_ROWS.filter(r=>{
-        if(!r["วันที่ตรวจ"]) return false;
+        if (!r["วันที่ตรวจ"]) return false;
+
         let d = new Date(r["วันที่ตรวจ"]);
-        if(!showAll && year && d.getFullYear()!=year) return false;
-        if(!showAll && month && d.getMonth()+1!=month) return false;
-        if(search && !JSON.stringify(r).includes(search)) return false;
-        return true;
+        let ok = true;
+
+        if (!showAll && year) ok &= d.getFullYear()==year;
+        if (!showAll && month) ok &= (d.getMonth()+1)==month;
+        if (search) ok &= JSON.stringify(r).includes(search);
+
+        return ok;
     });
 
     tableHead.innerHTML = `
@@ -274,84 +308,176 @@ function renderTable(showAll){
             <th>เลขไมล์</th>
             <th>ทะเบียนรถ</th>
             <th>ผู้ดูแลรถ</th>
+            <th>ระบบภายนอก</th>
+            <th>ระบบภายใน</th>
+            <th>ระบบเครื่องยนต์</th>
+            <th>ทดสอบขณะขับ</th>
             <th>หมายเหตุ</th>
             <th>รูปภาพทั้งหมด</th>
         </tr>
     `;
 
-    let html="";
+    let html = "";
+
     rows.forEach((row,i)=>{
-        let colUser = findColumn(row,"ผู้ดูแลรถ");
-        html+=`
+
+        /* ⭐ หาชื่อคอลัมน์ผู้ดูแลรถแบบ Dynamic */
+        let colUser = findColumn(row, "ผู้ดูแลรถ");
+
+        html += `
         <tr>
             <td>${row["วันที่ตรวจ"]||""}</td>
             <td>${row["เลขไมล์"]||""}</td>
             <td>${row["ทะเบียนรถ"]||""}</td>
-            <td>${row[colUser]||"-"}</td>
+            <td>${row[colUser] || "-"}</td>
+            <td class="toggle-btn" onclick="toggleDetails(${i},'ext')">▶ ${checkCategory(row, GROUPS["ระบบภายนอก"])}</td>
+            <td class="toggle-btn" onclick="toggleDetails(${i},'int')">▶ ${checkCategory(row, GROUPS["ระบบภายใน"])}</td>
+            <td class="toggle-btn" onclick="toggleDetails(${i},'eng')">▶ ${checkCategory(row, GROUPS["ระบบเครื่องยนต์"])}</td>
+            <td class="toggle-btn" onclick="toggleDetails(${i},'dr')">▶ ${checkCategory(row, GROUPS["การทดสอบขณะขับ"])}</td>
             <td>${row["หมายเหตุ แจ้งซ่อมแซม"]||""}</td>
-            <td class="toggle-btn" onclick="toggleImg(${i})">▶ รูปภาพ</td>
+            <td class="toggle-btn" onclick="toggleDetails(${i},'img')">▶ รูปภาพทั้งหมด</td>
         </tr>
-        <tr id="img-${i}" class="details-row" style="display:none">
-            <td colspan="6">
-                <div class="details-box" id="img-box-${i}"></div>
+        `;
+
+        ["ext","int","eng","dr"].forEach(cat=>{
+            const title = {
+                ext:"ระบบภายนอก", int:"ระบบภายใน",
+                eng:"ระบบเครื่องยนต์", dr:"การทดสอบขณะขับ"
+            }[cat];
+
+            html += `
+            <tr id="details-${i}-${cat}" class="details-row" style="display:none;">
+                <td colspan="10">
+                    <div class="details-box">
+                        <h4>${title}</h4>
+                        ${buildDetailList(row, GROUPS[title])}
+                    </div>
+                </td>
+            </tr>`;
+        });
+
+        html += `
+        <tr id="details-${i}-img" class="details-row" style="display:none;">
+            <td colspan="10">
+                <div class="details-box">
+                    <h4>รูปภาพทั้งหมด</h4>
+                    <div id="img-box-${i}" style="display:flex; gap:15px; flex-wrap:wrap;"></div>
+                    <button class="zip-btn" onclick="downloadImages(${i})">⬇ ดาวน์โหลดทั้งหมด</button>
+                </div>
             </td>
         </tr>`;
     });
 
     tableBody.innerHTML = html;
 
+    let fail = rows.filter(r => JSON.stringify(r).includes("ไม่ผ่าน") || JSON.stringify(r).includes("ต้องซ่อม")).length;
+
+    passCount.textContent = rows.length - fail;
+    failCount.textContent = fail;
     totalCount.textContent = rows.length;
-    passCount.textContent = rows.length;
-    failCount.textContent = 0;
 
     updateStickyPositions();
 }
 
-function toggleImg(i){
-    const row = document.getElementById(`img-${i}`);
-    row.style.display = row.style.display==="table-row"?"none":"table-row";
-    const box = document.getElementById(`img-box-${i}`);
-    if(box.innerHTML) return;
 
-    (GLOBAL_ROWS[i]["อัปโหลดรูปภาพรถภายนอก/ภายใน"]||"")
-    .split(",")
-    .forEach(u=>{
-        let img = convertDriveURL(u.trim());
-        if(img){
-            box.innerHTML+=`<img src="${img}" class="thumb" onclick="showImage('${img}')">`;
-        }
-    });
+/* Toggle */
+function toggleDetails(i,cat){
+    const row = document.getElementById(`details-${i}-${cat}`);
+    const open = row.style.display==="table-row";
+    row.style.display = open ? "none" : "table-row";
+
+    if (!open && cat==="img"){
+        const data = GLOBAL_ROWS[i];
+        const box = document.getElementById(`img-box-${i}`);
+        box.innerHTML = "";
+
+        (data["อัปโหลดรูปภาพรถภายนอก/ภายใน"] || "").split(",").forEach(url=>{
+            url = url.trim();
+            if (!url) return;
+
+            let img = convertDriveURL(url);
+            box.innerHTML += `<img src="${img}" class="thumb" onclick="showImage('${img}')">`;
+        });
+    }
 }
 
-/* ---------- PDF ---------- */
+
+/* ZIP Download */
+async function downloadImages(i){
+    const row = GLOBAL_ROWS[i];
+    const zip = new JSZip();
+    const folder = zip.folder(row["ทะเบียนรถ"]);
+
+    let urls = (row["อัปโหลดรูปภาพรถภายนอก/ภายใน"] || "").split(",");
+    let count = 1;
+
+    for (let u of urls){
+        u = u.trim();
+        if (!u) continue;
+
+        let img = convertDriveURL(u);
+        let blob = await fetch(img).then(r=>r.blob());
+        let ext = blob.type.includes("png") ? "png" : "jpg";
+
+        folder.file(`image_${count}.${ext}`, blob);
+        count++;
+    }
+
+    zip.generateAsync({type:"blob"}).then(b=>saveAs(b, `images_${row["ทะเบียนรถ"]}.zip`));
+}
+
+
+/* Export PDF */
 async function exportPDF(){
     const { jsPDF } = window.jspdf;
     let pdf = new jsPDF();
 
-    for(let i=0;i<GLOBAL_ROWS.length;i++){
-        let r = GLOBAL_ROWS[i];
-        pdf.text(`ทะเบียน: ${r["ทะเบียนรถ"]}`,10,10);
-        let urls=(r["อัปโหลดรูปภาพรถภายนอก/ภายใน"]||"").split(",");
+    for (let i=0;i<GLOBAL_ROWS.length;i++){
+        let row = GLOBAL_ROWS[i];
+        let y = 10;
 
-        let y=20;
-        for(let u of urls){
-            let img=convertDriveURL(u.trim());
-            if(!img) continue;
-            let data=await fetch(img).then(r=>r.blob()).then(b=>new Promise(res=>{
+        pdf.setFontSize(16);
+        pdf.text(`ทะเบียน: ${row["ทะเบียนรถ"]}`,10,y); y+=10;
+
+        pdf.setFontSize(12);
+        pdf.text(`วันที่ตรวจ: ${row["วันที่ตรวจ"]}`,10,y); y+=6;
+        pdf.text(`เลขไมล์: ${row["เลขไมล์"]}`,10,y); y+=6;
+
+        /* ⭐ ใช้คอลัมน์ผู้ดูแลแบบ Dynamic */
+        let colUser = findColumn(row, "ผู้ดูแลรถ");
+        pdf.text(`ผู้ตรวจ: ${row[colUser] || "-"}`,10,y); y+=10;
+
+        pdf.text("หมายเหตุ:",10,y); y+=6;
+        pdf.text(row["หมายเหตุ แจ้งซ่อมแซม"]||"-",15,y); y+=10;
+
+        let urls = (row["อัปโหลดรูปภาพรถภายนอก/ภายใน"] || "").split(",");
+
+        for (let u of urls){
+            u=u.trim();
+            if (!u) continue;
+
+            let img = convertDriveURL(u);
+
+            let dataUrl = await fetch(img)
+            .then(r=>r.blob())
+            .then(b=>new Promise(res=>{
                 let fr=new FileReader();
                 fr.onload=()=>res(fr.result);
                 fr.readAsDataURL(b);
             }));
-            pdf.addImage(data,"JPEG",10,y,80,60);
+
+            pdf.addImage(dataUrl,"JPEG",10,y,80,60);
             y+=65;
-            if(y>260){ pdf.addPage(); y=10; }
+
+            if (y>260){ pdf.addPage(); y=10; }
         }
-        if(i<GLOBAL_ROWS.length-1) pdf.addPage();
+
+        if (i < GLOBAL_ROWS.length - 1) pdf.addPage();
     }
+
     pdf.save("inspection_report.pdf");
 }
 </script>
 
 </body>
 </html>
-
