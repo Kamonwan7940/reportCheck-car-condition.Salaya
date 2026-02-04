@@ -126,20 +126,14 @@ button{
     </select>
 
     <select id="yearSelect"></select>
-    <select id="monthSelect">
-        <option value="">ทุกเดือน</option>
-        <script>
-            for(let m=1;m<=12;m++){
-                document.write(`<option value="${m}">${m}</option>`);
-            }
-        </script>
-    </select>
-
+    <input type="date" id="startDate">
+    <input type="date" id="endDate">
     <input id="searchInput" placeholder="ค้นหา…">
-
     <button class="load-btn" onclick="loadData()">โหลดข้อมูล</button>
     <button class="view-btn" onclick="loadData(true)">ดูทั้งหมด</button>
     <button class="export-btn" onclick="exportPDF()">📄 ส่งออก PDF</button>
+        <button class="view-btn" onclick="showNotChecked()">🚫 ยังไม่ได้ตรวจ</button>
+
 </div>
 
 <div class="summary-container">
@@ -188,10 +182,15 @@ window.addEventListener("resize", updateStickyPositions);
 -------------------------*/
 const SHEETS = {
     car: "17RaQXYiBqKRuThFsIe78NQsZQAp3zgSLrq-JgFXDXpE",
-    motor:"1fpLMthzvhCRKenfnsQfpomEJLxgAOYZuYvrBCGzzseI"
+    motor:"1fpLMthzvhCRKenfnsQfpomEJLxgAOYZuYvrBCGzzseI",
+    master:"17RaQXYiBqKRuThFsIe78NQsZQAp3zgSLrq-JgFXDXpE"
 };
-const TABS = { car:"car", motor:"motor" };
 
+const TABS = {
+    car:"car",
+    motor:"motor",
+    master:"ทะเบียนรถ"
+};
 
 /* ------------------------------
    ⭐ ฟังก์ชันสำคัญ: มองหาชื่อคอลัมน์
@@ -249,20 +248,62 @@ for (let y = yearNow; y >= yearNow-5; y--){
 }
 
 let GLOBAL_ROWS = [];
+let MASTER_PLATES = [];
+function parseDateSafe(str){
+    if (!str) return null;
+    const p = str.split("-");
+    if (p.length !== 3) return null;
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+}
 
+function isInDateRange(dateStr){
+    const d = parseDateSafe(dateStr);
+    if (!d || isNaN(d)) return false;
+
+    const hasStart = startDate.value;
+    const hasEnd = endDate.value;
+
+    if (hasStart || hasEnd){
+        const start = hasStart ? parseDateSafe(startDate.value) : null;
+        const end = hasEnd ? parseDateSafe(endDate.value) : null;
+
+        if (start && d < start) return false;
+        if (end && d > end) return false;
+        return true;
+    }
+
+    if (yearSelect.value){
+        return d.getFullYear() == Number(yearSelect.value);
+    }
+
+    return true;
+}
 
 /* Load data */
 function loadData(showAll=false){
     let type = carType.value;
 
-    fetch(`https://opensheet.elk.sh/${SHEETS[type]}/${TABS[type]}`)
-    .then(r=>r.json())
-    .then(data=>{
-        GLOBAL_ROWS = data;
+    Promise.all([
+        fetch(`https://opensheet.elk.sh/${SHEETS[type]}/${TABS[type]}`).then(r=>r.json()),
+        fetch(`https://opensheet.elk.sh/${SHEETS.master}/${TABS.master}`).then(r=>r.json())
+    ])
+    .then(([inspect, master])=>{
+        GLOBAL_ROWS = inspect;
+
+MASTER_PLATES = master
+    .filter(r => {
+        if (type === "car") {
+            return String(r["ประเภทรถ"] || "").includes("รถยนต์");
+        } else {
+            return String(r["ประเภทรถ"] || "").includes("จักรยานยนต์");
+        }
+    })
+    .map(r => String(r["ทะเบียนรถ"] || "").trim())
+    .filter(Boolean);
+
         renderTable(showAll);
     });
 }
-
 
 /* Pass/Fail */
 function checkCategory(row, keys){
@@ -294,22 +335,13 @@ function buildDetailList(row, keys){
 function renderTable(showAll){
     let type = carType.value;
     let GROUPS = type==="car" ? CAR_GROUPS : MOTOR_GROUPS;
-
-    let year = yearSelect.value;
-    let month = monthSelect.value;
     let search = searchInput.value.trim();
 
     let rows = GLOBAL_ROWS.filter(r=>{
         if (!r["วันที่ตรวจ"]) return false;
-
-        let d = new Date(r["วันที่ตรวจ"]);
-        let ok = true;
-
-        if (!showAll && year) ok &= d.getFullYear()==year;
-        if (!showAll && month) ok &= (d.getMonth()+1)==month;
-        if (search) ok &= JSON.stringify(r).includes(search);
-
-        return ok;
+        if (!showAll && !isInDateRange(r["วันที่ตรวจ"])) return false;
+        if (search && !JSON.stringify(r).includes(search)) return false;
+        return true;
     });
 
     tableHead.innerHTML = `
@@ -487,6 +519,38 @@ async function exportPDF(){
 
     pdf.save("inspection_report.pdf");
 }
+function showNotChecked(){
+
+    let checked = GLOBAL_ROWS.filter(r=>{
+        if (!r["วันที่ตรวจ"]) return false;
+        return isInDateRange(r["วันที่ตรวจ"]);
+    }).map(r => r["ทะเบียนรถ"]);
+
+    let notChecked = MASTER_PLATES.filter(p => !checked.includes(p));
+
+    tableHead.innerHTML = `
+        <tr>
+            <th>ลำดับ</th>
+            <th>ทะเบียนรถ</th>
+            <th>สถานะ</th>
+        </tr>
+    `;
+
+    tableBody.innerHTML = notChecked.map((p,i)=>`
+        <tr>
+            <td>${i+1}</td>
+            <td>${p}</td>
+            <td style="color:#DC2626;font-weight:bold;">🚫 ยังไม่ได้ตรวจ</td>
+        </tr>
+    `).join("");
+
+    passCount.textContent = 0;
+    failCount.textContent = notChecked.length;
+    totalCount.textContent = notChecked.length;
+
+    updateStickyPositions();
+}
+
 </script>
 
 </body>
