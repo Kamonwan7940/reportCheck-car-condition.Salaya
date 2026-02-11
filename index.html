@@ -126,9 +126,9 @@ button{
     </select>
 
     <select id="yearSelect"></select>
-    <input type="date" id="startDate">
-    <input type="date" id="endDate">
-    <input id="searchInput" placeholder="ค้นหา…">
+	<input type="date" id="startDate">
+	<input type="date" id="endDate">
+    <input id="searchInput" placeholder="ค้นหาทะเบียน…">
     <button class="load-btn" onclick="loadData()">โหลดข้อมูล</button>
     <button class="view-btn" onclick="loadData(true)">ดูทั้งหมด</button>
     <button class="export-btn" onclick="exportPDF()">📄 ส่งออก PDF</button>
@@ -246,7 +246,7 @@ let yearNow = new Date().getFullYear();
 for (let y = yearNow; y >= yearNow-5; y--){
     yearSelect.innerHTML += `<option>${y}</option>`;
 }
-
+let DISPLAY_ROWS = []; // ⭐ ข้อมูลที่แสดงจริงบนหน้าจอ
 let GLOBAL_ROWS = [];
 let MASTER_PLATES = [];
 function parseDateSafe(str){
@@ -330,19 +330,36 @@ function buildDetailList(row, keys){
     return html;
 }
 
-
 /* Render table */
 function renderTable(showAll){
     let type = carType.value;
     let GROUPS = type==="car" ? CAR_GROUPS : MOTOR_GROUPS;
-    let search = searchInput.value.trim();
+    
+    // --- ส่วนที่เพิ่มเข้ามาสำหรับการค้นหา ---
+    let searchText = searchInput.value.trim().toLowerCase(); 
 
-    let rows = GLOBAL_ROWS.filter(r=>{
+    let start = startDate.value ? new Date(startDate.value) : null;
+    let end   = endDate.value ? new Date(endDate.value) : null;
+
+    let rows = GLOBAL_ROWS.filter(r => {
         if (!r["วันที่ตรวจ"]) return false;
-        if (!showAll && !isInDateRange(r["วันที่ตรวจ"])) return false;
-        if (search && !JSON.stringify(r).includes(search)) return false;
+
+        let d = new Date(r["วันที่ตรวจ"]);
+        
+        // กรองด้วยวันที่
+        if (start && d < start) return false;
+        if (end && d > end) return false;
+
+        // --- ส่วนที่เพิ่มเข้ามาสำหรับการค้นหาทะเบียนรถ ---
+        if (searchText) {
+            let plate = String(r["ทะเบียนรถ"] || "").toLowerCase();
+            if (!plate.includes(searchText)) return false;
+        }
+
         return true;
     });
+
+    DISPLAY_ROWS = rows;
 
     tableHead.innerHTML = `
         <tr>
@@ -362,8 +379,6 @@ function renderTable(showAll){
     let html = "";
 
     rows.forEach((row,i)=>{
-
-        /* ⭐ หาชื่อคอลัมน์ผู้ดูแลรถแบบ Dynamic */
         let colUser = findColumn(row, "ผู้ดูแลรถ");
 
         html += `
@@ -429,7 +444,7 @@ function toggleDetails(i,cat){
     row.style.display = open ? "none" : "table-row";
 
     if (!open && cat==="img"){
-        const data = GLOBAL_ROWS[i];
+        const data = DISPLAY_ROWS[i];
         const box = document.getElementById(`img-box-${i}`);
         box.innerHTML = "";
 
@@ -446,7 +461,7 @@ function toggleDetails(i,cat){
 
 /* ZIP Download */
 async function downloadImages(i){
-    const row = GLOBAL_ROWS[i];
+   const row = DISPLAY_ROWS[i];
     const zip = new JSZip();
     const folder = zip.folder(row["ทะเบียนรถ"]);
 
@@ -474,8 +489,8 @@ async function exportPDF(){
     const { jsPDF } = window.jspdf;
     let pdf = new jsPDF();
 
-    for (let i=0;i<GLOBAL_ROWS.length;i++){
-        let row = GLOBAL_ROWS[i];
+for (let i=0; i<DISPLAY_ROWS.length; i++){
+    let row = DISPLAY_ROWS[i];
         let y = 10;
 
         pdf.setFontSize(16);
